@@ -1,0 +1,11 @@
+{
+  "name": "artikel-archiv",
+  "description": "Artikel archivierer",
+  "version": "0.0.2",
+  "author": "Adrian Kuendig <adriankue@gmail.com>",
+  "dependencies": {
+    "express": ">= 0.0.1",
+    "scraper": ">= 0.0.1"
+  },
+  "engines": { "node": ">= 0.4.1 < 0.7.0" }
+}
