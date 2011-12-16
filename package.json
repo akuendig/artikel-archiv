@@ -4,8 +4,9 @@
   "version": "0.0.2",
   "author": "Adrian Kuendig <adriankue@gmail.com>",
   "dependencies": {
-    "express": ">= 0.0.1",
-    "scraper": ">= 0.0.1"
+    "express": "= 2.5.2",
+    "scraper": "= 0.0.9",
+    "mongoose": "=2.4.7"
   },
   "engines": { "node": ">= 0.4.1 < 0.7.0" }
 }
