@@ -1,0 +1,23 @@
+use art
+ls
+ls()
+show collections
+show dbs
+db.articles.find()
+db.articles.drop()
+show collections
+use art
+db.find()
+db.articles.select('title')
+db.articles.find().select('title')
+db.articles.getIndexes()
+db.articles.select(
+print(db.articles.select)
+print(art.articles.select)
+print(db.articles)
+db.articles.find( {}, {title: 1})
+use art
+db.articles.getIndexes()
+db.system.indexes.find()
+db.articles.ensureIndex({id: 1}, {unique: true})
+db.articles.findOne()

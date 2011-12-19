@@ -52,7 +52,6 @@ function poll() {
 
     agent.start();
 
-
     parser.on('article', function (element) {
         checkArticle(element, agent, tagiDb);
     });
