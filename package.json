@@ -4,9 +4,14 @@
   "version": "0.0.2",
   "author": "Adrian Kuendig <adriankue@gmail.com>",
   "dependencies": {
-    "express": "= 2.5.2",
-    "scraper": "= 0.0.9",
-    "mongoose": "=2.4.7"
+    "contextify": ">= 0.0.6",
+    "express": ">= 2.5.2",
+    "feedparser": ">= 0.4.3",
+    "jquery": ">= 1.6.3",
+    "jsdom": ">= 0.2.10",
+    "request": ">= 2.2.9",
+    "step": ">= 0.0.5",
+    "mongoose": ">=2.4.7"
   },
   "engines": { "node": ">= 0.4.1 < 0.7.0" }
 }
