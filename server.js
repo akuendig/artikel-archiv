@@ -1,36 +1,105 @@
 var zlib = require('zlib'),
     crypto = require('crypto'),
-    httpAgent = require('http-agent'),
-    request = require('request'),
     express = require('express'),
     mongoose = require('mongoose'),
     FeedParser = require('feedparser'),
     Step = require('step'),
     model = require('./model'),
+    DownloadStack = require('./lib/download-stack');
     app = express.createServer();
 
 app.get('/', function (req, res) {
-        poll();
-
-    //    Step(
-    //        function () {
-    //            Article.each({}, this);
-    //        },
-    //        function (error, document) {
-
-    //        }
-
-    res.send('Hello World! Reloaded :D');
+    renderArticles('tagi', function (error, text) {
+        res.send(text);
+    });
+});
+app.get('/article/:id', function (req, res) {
+    renderArticle(req.params.id, function (error, text) {
+        res.send(text);
+    });
+});
+app.get('/poll', function (req, res) {
+    pollTagi(function (error) {
+        if (error) {
+            res.send('An error occured:\n' + JSON.stringify(error));
+        } else {
+            res.send('Successfully checked tagi rss feeds.');
+        }
+    });
 });
 
 app.listen(process.env.PORT || 3000);
 
+function renderArticles(paper, callback) {
+    switch(paper) {
+        case 'tagi':
+            var db = mongoose.createConnection('mongodb://localhost/tagi'),
+                text = '',
+                stream;
+            
+            stream = db.
+                model('Article').
+                find().
+                select(['id', 'title', 'summary', 'link']).
+                asc(['title']).
+                stream();
+
+            stream.on('error', callback);
+            stream.on('data', function (doc) {
+                text += '<li><a href="/article/' +
+                    doc.id + '"><h4>' +
+                    doc.title + '</h4></a><h6>' +
+                    doc.link + '</h6><div>' +
+                    doc.summary + '</div></li>\n';
+            });
+            stream.on('close', function () {
+                callback(null, text);
+            });
+            break;
+        default:
+            console.error('unable to render articles from: ' + paper);
+    };
+}
+
+function renderArticle(id, callback) {
+    var db = mongoose.createConnection('mongodb://localhost/tagi'),
+        stream,
+        text = '';    
+
+    Step(
+        function () {
+            db.
+                model('Article').
+                findOne({id: id}).
+                select(['site', 'link']).
+                run(this);
+        },
+        function (error, documents) {
+            var doc = documents[0];
+
+            if (error) {
+                return callback(error);
+            }
+
+            zlib.inflate(doc.site, this)
+        },
+        function (error, site) {
+            if (error) {
+                return callback(error);
+            }
+
+            return callback(null, site);
+        });
+}
+
 function poll() {
+    pollTagi();
+}
+
+function pollTagi(callback) {
     var parser = new FeedParser(),
-        tagiDb = mongoose.createConnection('mongodb://localhost/tagi'),
-        nzzDb = mongoose.createConnection('mongodb://localhost/nzz'),
-        minDb = mongoose.createConnection('mongodb://localhost/min20'),
-        agent = httpAgent.create('www.tagesanzeiger.ch', []),
+        stack = DownloadStack.create(),
+        db = mongoose.createConnection('mongodb://localhost/tagi'),
         feeds = [
             'http://www.tagesanzeiger.ch/rss.html',
             'http://www.tagesanzeiger.ch/rss_ticker.html',
@@ -48,83 +117,90 @@ function poll() {
             'http://www.tagesanzeiger.ch/dienste/RSS/story/rss.html'
         ],
         i = 0,
-        len = feeds.length;
+        len = feeds.length,
+        elements = [];
 
-    agent.start();
-
-
-    parser.on('article', function (element) {
-        checkArticle(element, agent, tagiDb);
-    });
-
-    parser.on('end', function (a, b, c) {
+    parser.on('end', function (articles) {
         i += 1;
+        elements = elements.concat(articles);
 
         if (i < len) {
             parser.parseUrl(feeds[i]);
         } else {
-            console.log('finished parsing feed');
+            Step(
+                function () {
+                    var i = 0,
+                        len = elements.length;
+
+                    for (; i < len; i += 1) {
+                        checkTagiArticle(elements[i], stack, db, this.parallel());
+                    }
+                },
+                function (error) {
+                    if (error) {
+                        console.error('Errors during article update: ' + JSON.stringify(error));
+                    } else {
+                        console.log('successfully checked tagi rss feeds.');
+                    }
+
+                    db.close();
+                    callback(error);
+                });
         }
     });
 
-    return parser.parseUrl(feeds[i]);
+    return db.on('open', function () {
+        parser.parseUrl(feeds[i]);
+    });
 }
 
-function checkArticle(element, agent, db) {
+function checkTagiArticle(element, stack, db, callback) {
     var Article = db.model('Article'),
         md5,
         callback,
         id;
 
     if (!element.link) {
-        return console.log('link does not exist: ' + JSON.stringify(element));
+        return callback('link does not exist: ' + JSON.stringify(element));
     }
 
-    md5 = crypto.createHash('md5')
-    id = md5.update(element.guid);
-    id += md5.digest('hex');
+    md5 = crypto.createHash('md5');
+    md5.update(element.guid);
+    id = md5.digest('hex');
 
-    callback = function (error, agnt) {
-        if (agnt.url === element.link) {
-	    return;
-        }
+   return Step(
+        function () {
+            Article.find({ 'id': id }, this);
+        },
+        function (error, documents) {
+            if (!error && documents.length === 0) {
+                stack.push(element.link, this);
+            } else {
+                callback(error);
+            }
+        },
+        function (error, response, body) {
+            if (!error) {
+                zlib.deflate(body, this);
+            } else {
+                callback(error);
+            }
+        },
+        function (error, compressed) {
+            if (!error) {
+                var article = new Article();
 
-        agnt.removeListener('next', callback);
+                article.id = id;
+                article.title = element.title;
+                article.summary = element.summary;
+                article.pubDate = element.pubDate;
+                article.link = element.link;
+                article.site = compressed;
 
-        Step(
-            function () {
-                if (!error) {
-                    zlib.deflate(agnt.body, this);
-                }
-            },
-            function (error, compressed) {
-                if (!error) {
-                    var article = new Article();
-
-                    article.id = id;
-                    article.title = element.title;
-                    article.summary = element.summary;
-                    article.pubDate = element.pubDate;
-                    article.link = element.link;
-                    article.site = compressed;
-
-                    article.save(this);
-                }
-            },
-            function (error) {
-                if (error) {
-                    console.log('could not save test article');
-                }
-            });
-
-        agnt.next();
-    };
-
-    Article.find({ 'id': id }, function (error, documents) {
-        if (!error && documents.length === 0) {
-            agent.addListener('next', callback);
-            agent.addUrl(element.link);
-            //request(element.link, this);
-        }
-    });
+                article.save(this);
+            } else {
+                callback(error);
+            }
+        },
+        callback);
 }
