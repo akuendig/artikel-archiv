@@ -1,32 +1,60 @@
-var crypto = require('crypto'),
-    express = require('express'),
+var express = require('express'),
     mongoose = require('mongoose'),
-    FeedParser = require('feedparser'),
-    Step = require('step'),
-    model = require('./lib/model'),
-    DownloadStack = require('./lib/download-stack');
+    async = require('async'),
+    tagi = require('./lib/tagi'),
+    logger = require('./lib/logger').createLogger(),
     app = express.createServer();
 
 // Webserver
 
 app.get('/', function (req, res) {
     renderArticles('tagi', function (error, text) {
-        res.send(text);
-    });
-});
-app.get('/article/:id', function (req, res) {
-    renderArticle(req.params.id, function (error, text) {
-        res.send(text);
-    });
-});
-app.get('/poll', function (req, res) {
-    pollTagi(function (error) {
         if (error) {
-            res.send('An error occured:\n' + JSON.stringify(error));
+            logger.error(error);
+            res.send('An error occured while querying the articles database: ' +  error);
         } else {
-            res.send('Successfully checked tagi rss feeds.');
+            res.send('<form action="poll" method="post"><input type="submit"></input></form>\n' + text);
         }
     });
+});
+
+app.get('/:paper/:id', function (req, res) {
+    renderArticle(req.params.id, req.params.paper, function (error, text) {
+        if (error) {
+            logger.error(error);
+            res.send('An error occured while querying the articles database: ' +  error);
+        } else {
+            res.send(text);
+        }
+    });
+});
+
+app.get('/errors' , function (req, res) {
+    logger.getImportance(2, function (error, errors) {
+        if (error) {
+            res.send('An error occured while querying the log database:\n' + error);
+        } else {
+            for (var i = 0, len = errors.length; i < len; i += 1) {
+                res.write(JSON.stringify(errors[i]) + '\n\n');
+            }
+            
+            res.send();
+        }
+    });
+});
+
+app.post('/poll', function (req, res) {
+    var db = tagi.createDatabase();
+
+    db.poll(function (error) {
+        if (error) {
+            logger.error(error);
+        } else {
+            logger.info('successfully checked tagi rss feeds.');
+        }
+    });
+
+    res.send();
 });
 
 app.listen(process.env.PORT || 3000);
@@ -49,11 +77,11 @@ function renderArticles(paper, callback) {
 
             stream.on('error', callback);
             stream.on('data', function (doc) {
-                text += '<li><a href="/article/' +
+                text += '<li><a href="/tagi/' +
                     doc.id + '"><h4>' +
-                    doc.title + '</h4></a><h6>' +
+                    doc.title + '</h4></a>'; /*<h6>' +
                     doc.link + '</h6><div>' +
-                    doc.summary + '</div></li>\n';
+                    doc.summary + '</div></li>\n';*/
             });
             stream.on('close', function () {
                 callback(null, text);
@@ -64,144 +92,24 @@ function renderArticles(paper, callback) {
     };
 }
 
-function renderArticle(id, callback) {
-    var db = mongoose.createConnection('mongodb://localhost/tagi'),
-        stream,
-        text = '';    
-
-    Step(
-        function () {
-            db.
-                model('Article').
-                findOne({id: id}).
-                select(['site', 'link']).
-                run(this);
-        },
-        function (error, documents) {
-            var doc = documents[0];
-
-            if (error) {
-                return callback(error);
-            }
-            
-            doc.getSite(this);
-        },
-        function (error, site) {
-            if (error) {
-                return callback(error);
-            }
-
-            return callback(null, site);
-        });
-}
-
-// Article polling
-
-function poll() {
-    pollTagi();
-}
-
-function pollTagi(callback) {
-    var parser = new FeedParser(),
-        stacks = [ DownloadStack.create(), DownloadStack.create() ],
-        db = mongoose.createConnection('mongodb://localhost/tagi'),
-        feeds = [
-            'http://www.tagesanzeiger.ch/rss.html',
-            'http://www.tagesanzeiger.ch/rss_ticker.html',
-            'http://www.tagesanzeiger.ch/zuerich/rss.html',
-            'http://www.tagesanzeiger.ch/schweiz/rss.html',
-            'http://www.tagesanzeiger.ch/ausland/rss.html',
-            'http://www.tagesanzeiger.ch/wirtschaft/rss.html',
-            'http://www.tagesanzeiger.ch/sport/rss.html',
-            'http://www.tagesanzeiger.ch/kultur/rss.html',
-            'http://www.tagesanzeiger.ch/panorama/rss.html',
-            'http://www.tagesanzeiger.ch/leben/rss.html',
-            'http://www.tagesanzeiger.ch/auto/rss.html',
-            'http://www.tagesanzeiger.ch/digital/rss.html',
-            'http://www.tagesanzeiger.ch/wissen/rss.html',
-            'http://www.tagesanzeiger.ch/dienste/RSS/story/rss.html'
-        ],
-        i = 0,
-        len = feeds.length,
-        elements = [];
-
-    parser.on('end', function (articles) {
-        i += 1;
-        elements = elements.concat(articles);
-
-        if (i < len) {
-            parser.parseUrl(feeds[i]);
-        } else {
-            Step(
-                function () {
-                    var i = 0,
-                        len = elements.length;
-
-                    for (; i < len; i += 1) {
-                        checkTagiArticle(elements[i], stacks[i % 2], db, this.parallel());
-                    }
+function renderArticle(id, paper, callback) {
+    switch (paper) {
+        case 'tagi':
+            async.waterfall([
+                function (cb) {
+                    tagi.
+                        createDatabase().
+                        get(id, cb);
                 },
-                function (error) {
-                    if (error) {
-                        console.error('Errors during article update: ' + JSON.stringify(error));
-                    } else {
-                        console.log('successfully checked tagi rss feeds.');
-                    }
-
-                    db.close();
-                    callback(error);
-                });
-        }
-    });
-
-    return db.on('open', function () {
-        parser.parseUrl(feeds[i]);
-    });
-}
-
-function checkTagiArticle(element, stack, db, callback) {
-    var Article = db.model('Article'),
-        article = new Article(),
-        id;
-
-    if (!element.link) {
-        return callback('link does not exist: ' + JSON.stringify(element));
-    }
-
-    id = crypto.createHash('md5').update(element.guid).digest('hex');
-
-    return Step(
-        function () {
-            Article.find({ 'id': id }, this);
-        },
-        function (error, documents) {
-            if (!error && documents.length === 0) {
-                stack.push(element.link, this);
-            } else {
-                callback(error);
-            }
-        },
-        function (error, response, body) {
-            if (!error) {
-                article.setSite(body, this);
-            } else {
-                callback(error);
-            }
-        },
-        function (error, compressed) {
-            if (!error) {
-                var art = article;
-
-                art.id = id;
-                art.title = element.title;
-                art.summary = element.summary;
-                art.pubDate = element.pubDate;
-                art.link = element.link;
-
-                art.save(this);
-            } else {
-                callback(error);
-            }
-        },
-        callback);
+                function (doc, cb) {
+                    doc.getSite(cb);
+                },
+                function (site, cb) {
+                    cb(null, site);
+                }],
+                callback);
+            break;
+        default:
+            callback('Could not render article. Id: ' + id + ', Paper: ' + paper);
+    };
 }
