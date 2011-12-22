@@ -71,6 +71,7 @@ function renderArticles(paper, callback) {
             stream = db.
                 model('Article').
                 find().
+                limit(40).
                 select(['id', 'title', 'summary', 'link']).
                 asc(['title']).
                 stream();
