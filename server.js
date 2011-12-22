@@ -30,7 +30,7 @@ app.get('/:paper/:id', function (req, res) {
 });
 
 app.get('/errors' , function (req, res) {
-    logger.getImportance(2, function (error, errors) {
+    logger.getAll(function (error, errors) {
         if (error) {
             res.send('An error occured while querying the log database:\n' + error);
         } else {
@@ -38,7 +38,7 @@ app.get('/errors' , function (req, res) {
                 res.write(JSON.stringify(errors[i]) + '\n\n');
             }
             
-            res.send();
+            res.end();
         }
     });
 });
