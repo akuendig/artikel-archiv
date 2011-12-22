@@ -2,34 +2,69 @@ var express = require('express'),
     mongoose = require('mongoose'),
     async = require('async'),
     tagi = require('./lib/tagi'),
+    minuten = require('./lib/minuten'),
     logger = require('./lib/logger').createLogger(),
     app = express.createServer();
 
 // Webserver
 
 app.get('/', function (req, res) {
-    renderArticles('tagi', function (error, text) {
-        if (error) {
-            logger.error(error);
-            res.send('An error occured while querying the articles database: ' +  error);
-        } else {
-            res.send('<form action="poll" method="post"><input type="submit"></input></form>\n' + text);
-        }
-    });
+    res.send(
+        '<form action="poll" method="post"><input type="submit" value="Poll" /></form>' +
+        '<form action="tagi" method="get"><input type="submit" value="Tagi" /></form>' +
+        '<form action="min" method="get"><input type="submit" value="20 Minuten" /></form>' +
+        '<form action="/admin/errors" method="get"><input type="submit" value="Errors" /></form>');
 });
 
-app.get('/:paper/:id', function (req, res) {
-    renderArticle(req.params.id, req.params.paper, function (error, text) {
-        if (error) {
-            logger.error(error);
-            res.send('An error occured while querying the articles database: ' +  error);
-        } else {
-            res.send(text);
-        }
-    });
+app.get('/tagi/:id?', function (req, res) {
+    var id = req.params.id;
+
+    if (id) {
+        renderArticle(id, 'tagi', function (error, text) {
+            if (error) {
+                logger.error(error);
+                res.send('An error occured while querying the articles database: ' +  error);
+            } else {
+                res.send(text);
+            }
+        });
+    } else {
+        renderArticles('tagi', function (error, text) {
+            if (error) {
+                logger.error(error);
+                res.send('An error occured while querying the articles database: ' +  error);
+            } else {
+                res.send(text);
+            }
+        });
+    }
 });
 
-app.get('/errors' , function (req, res) {
+app.get('/min/:id?', function (req, res) {
+    var id = req.params.id;
+
+    if (id) {
+        renderArticle(id, 'min', function (error, text) {
+            if (error) {
+                logger.error(error);
+                res.send('An error occured while querying the articles database: ' +  error);
+            } else {
+                res.send(text);
+            }
+        });
+    } else {
+        renderArticles('min', function (error, text) {
+            if (error) {
+                logger.error(error);
+                res.send('An error occured while querying the articles database: ' +  error);
+            } else {
+                res.send(text);
+            }
+        });
+    }
+});
+
+app.get('/admin/errors' , function (req, res) {
     logger.getAll(function (error, errors) {
         if (error) {
             res.send('An error occured while querying the log database:\n' + error);
@@ -44,9 +79,15 @@ app.get('/errors' , function (req, res) {
 });
 
 app.post('/poll', function (req, res) {
-    var db = tagi.createDatabase();
+    minuten.poll(function (error) {
+        if (error) {
+            logger.error(error);
+        } else {
+            logger.info('successfully checked 20 Minuten rss feeds.');
+        }
+    });
 
-    db.poll(function (error) {
+    tagi.poll(function (error) {
         if (error) {
             logger.error(error);
         } else {
@@ -62,35 +103,47 @@ app.listen(process.env.PORT || 3000);
 // Webserver rendering
 
 function renderArticles(paper, callback) {
+    var text = '',
+        stream;
+
     switch(paper) {
         case 'tagi':
-            var db = mongoose.createConnection('mongodb://localhost/tagi'),
-                text = '',
-                stream;
-            
-            stream = db.
+            stream =
+                mongoose.
+                createConnection('mongodb://localhost/tagi')
                 model('Article').
                 find().
                 limit(40).
                 select(['id', 'title', 'summary', 'link']).
-                asc(['title']).
+                asc('title').
                 stream();
-
-            stream.on('error', callback);
-            stream.on('data', function (doc) {
-                text += '<li><a href="/tagi/' +
-                    doc.id + '"><h4>' +
-                    doc.title + '</h4></a>'; /*<h6>' +
-                    doc.link + '</h6><div>' +
-                    doc.summary + '</div></li>\n';*/
-            });
-            stream.on('close', function () {
-                callback(null, text);
-            });
+            break;
+        case 'min':
+            stream =
+                mongoose.
+                createConnection('mongodb://localhost/min20').
+                model('Article').
+                find().
+                limit(40).
+                select(['id', 'title', 'summary', 'link']).
+                asc('title').
+                stream();
             break;
         default:
-            console.error('unable to render articles from: ' + paper);
+            return callback('ERROR! Unable to render articles from: ' + paper);
     };
+        
+
+    stream.on('error', callback);
+    stream.on('data', function (doc) {
+        text += '<li><a href="/tagi/' +
+            doc.id + '"><h4>' +
+            doc.title + '</h4></a>';
+    });
+
+    return stream.on('close', function () {
+        callback(null, text);
+    });
 }
 
 function renderArticle(id, paper, callback) {
@@ -98,19 +151,24 @@ function renderArticle(id, paper, callback) {
         case 'tagi':
             async.waterfall([
                 function (cb) {
-                    tagi.
-                        createDatabase().
-                        get(id, cb);
+                    tagi.get(id, cb);
                 },
                 function (doc, cb) {
                     doc.getSite(cb);
+                }],
+                callback);
+            break;
+        case 'min':
+            async.waterfall([
+                function (cb) {
+                    minuten.get(id, cb);
                 },
-                function (site, cb) {
-                    cb(null, site);
+                function (doc, cb) {
+                    doc.getSite(cb);
                 }],
                 callback);
             break;
         default:
-            callback('Could not render article. Id: ' + id + ', Paper: ' + paper);
+            callback('ERROR! Could not render article. Id: ' + id + ', Paper: ' + paper);
     };
 }
