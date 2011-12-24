@@ -8,6 +8,14 @@ var express = require('express'),
     logger = require('./lib/logger').createLogger(),
     app = express.createServer();
 
+app.configure(function () {
+    app.use(express.logger());
+    app.use(express.errorHandler({
+        dumpExceptions: true,
+        showStack: true
+    }));
+});
+
 // Webserver rendering
 // *******************
 
@@ -106,35 +114,38 @@ function renderArticle(id, paper, callback) {
 // *********
 
 app.get('/', function (req, res) {
-    var text;
-    text = '<form action="poll" method="post"><input type="submit" value="Poll" /></form>';
-    text += '<form action="tagi" method="get"><input type="submit" value="Tagi" /></form>';
-    text += '<form action="min" method="get"><input type="submit" value="20 Minuten" /></form>';
-    text += '<form action="blick" method="get"><input type="submit" value="Blick" /></form>';
-    text += '<form action="/admin/errors" method="get"><input type="submit" value="Errors" /></form>';
+    res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
-    res.send(text);
+    res.write('<form action="poll" method="post"><input type="submit" value="Poll" /></form>');
+    res.write('<form action="tagi" method="get"><input type="submit" value="Tagi" /></form>');
+    res.write('<form action="min" method="get"><input type="submit" value="20 Minuten" /></form>');
+    res.write('<form action="blick" method="get"><input type="submit" value="Blick" /></form>');
+    res.write('<form action="/admin/errors" method="get"><input type="submit" value="Errors" /></form>');
+
+    res.end();
 });
 
 app.get('/tagi/:id?', function (req, res) {
     var id = req.params.id;
 
+    res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
+
     if (id) {
         renderArticle(id, 'tagi', function (error, text) {
             if (error) {
                 logger.error(error);
-                res.send('An error occured while querying the articles database: ' +  error);
+                res.end('An error occured while querying the articles database: ' +  error);
             } else {
-                res.send(text);
+                res.end(text);
             }
         });
     } else {
         renderArticles('tagi', function (error, text) {
             if (error) {
                 logger.error(error);
-                res.send('An error occured while querying the articles database: ' +  error);
+                res.end('An error occured while querying the articles database: ' +  error);
             } else {
-                res.send(text);
+                res.end(text);
             }
         });
     }
@@ -142,23 +153,25 @@ app.get('/tagi/:id?', function (req, res) {
 
 app.get('/min/:id?', function (req, res) {
     var id = req.params.id;
+    
+    res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
     if (id) {
         renderArticle(id, 'min', function (error, text) {
             if (error) {
                 logger.error(error);
-                res.send('An error occured while querying the articles database: ' +  error);
+                res.end('An error occured while querying the articles database: ' +  error);
             } else {
-                res.send(text);
+                res.end(text);
             }
         });
     } else {
         renderArticles('min', function (error, text) {
             if (error) {
                 logger.error(error);
-                res.send('An error occured while querying the articles database: ' +  error);
+                res.end('An error occured while querying the articles database: ' +  error);
             } else {
-                res.send(text);
+                res.end(text);
             }
         });
     }
@@ -166,23 +179,25 @@ app.get('/min/:id?', function (req, res) {
 
 app.get('/blick/:id?', function (req, res) {
     var id = req.params.id;
+    
+    res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
     if (id) {
         renderArticle(id, 'blick', function (error, text) {
             if (error) {
                 logger.error(error);
-                res.send('An error occured while querying the articles database: ' +  error);
+                res.end('An error occured while querying the articles database: ' +  error);
             } else {
-                res.send(text);
+                res.end(text);
             }
         });
     } else {
         renderArticles('blick', function (error, text) {
             if (error) {
                 logger.error(error);
-                res.send('An error occured while querying the articles database: ' +  error);
+                res.end('An error occured while querying the articles database: ' +  error);
             } else {
-                res.send(text);
+                res.end(text);
             }
         });
     }
@@ -196,6 +211,7 @@ app.get('/admin/errors', function (req, res) {
         if (error) {
             res.send('An error occured while querying the log database:\n' + error);
         } else {
+            res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
             res.write('<table border="1"><tr><th>Time</th><th>Importance</th><th>Message</th></tr>');
 
             for (i = 0, len = errors.length; i < len; i += 1) {
@@ -234,7 +250,8 @@ app.post('/poll', function (req, res) {
         }
     });
 
-    res.send();
+    res.writeHeader(200, {"Content-Type": "text/html"});
+    res.end();
 });
 
 app.listen(process.env.PORT || 3000);
