@@ -16,7 +16,7 @@ app.configure(function () {
     }));
 });
 
-// Webserver rendering
+// Web server rendering
 // *******************
 
 function renderArticles(paper, callback) {
@@ -110,13 +110,13 @@ function renderArticle(id, paper, callback) {
     }
 }
 
-// Webserver
+// Web server
 // *********
 
 app.get('/', function (req, res) {
     res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
-    res.write('<form action="poll" method="post"><input type="submit" value="Poll" /></form>');
+    //res.write('<form action="poll" method="post"><input type="submit" value="Poll" /></form>');
     res.write('<form action="tagi" method="get"><input type="submit" value="Tagi" /></form>');
     res.write('<form action="min" method="get"><input type="submit" value="20 Minuten" /></form>');
     res.write('<form action="blick" method="get"><input type="submit" value="Blick" /></form>');
@@ -127,8 +127,6 @@ app.get('/', function (req, res) {
 
 app.get('/tagi/:id?', function (req, res) {
     var id = req.params.id;
-
-    res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
     if (id) {
         renderArticle(id, 'tagi', function (error, text) {
@@ -145,6 +143,7 @@ app.get('/tagi/:id?', function (req, res) {
                 logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
+                res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
                 res.end(text);
             }
         });
@@ -153,8 +152,6 @@ app.get('/tagi/:id?', function (req, res) {
 
 app.get('/min/:id?', function (req, res) {
     var id = req.params.id;
-    
-    res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
     if (id) {
         renderArticle(id, 'min', function (error, text) {
@@ -171,6 +168,7 @@ app.get('/min/:id?', function (req, res) {
                 logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
+                res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
                 res.end(text);
             }
         });
@@ -179,8 +177,6 @@ app.get('/min/:id?', function (req, res) {
 
 app.get('/blick/:id?', function (req, res) {
     var id = req.params.id;
-    
-    res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
     if (id) {
         renderArticle(id, 'blick', function (error, text) {
@@ -197,6 +193,7 @@ app.get('/blick/:id?', function (req, res) {
                 logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
+                res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
                 res.end(text);
             }
         });
