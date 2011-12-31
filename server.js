@@ -3,6 +3,7 @@ var express = require('express'),
     mongoose = require('mongoose'),
     async = require('async'),
     archiver = require('./lib/archiver'),
+    logger = require('./lib/logger').createLogger(),
     tagi,
     minuten,
     blick,
@@ -127,6 +128,7 @@ app.get('/tagi/:id?', function (req, res) {
     if (id) {
         renderArticle(id, 'tagi', function (error, text) {
             if (error) {
+                logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.end(text);
@@ -135,6 +137,7 @@ app.get('/tagi/:id?', function (req, res) {
     } else {
         renderArticles('tagi', function (error, text) {
             if (error) {
+                logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
@@ -150,6 +153,7 @@ app.get('/min/:id?', function (req, res) {
     if (id) {
         renderArticle(id, 'min', function (error, text) {
             if (error) {
+                logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.end(text);
@@ -158,6 +162,7 @@ app.get('/min/:id?', function (req, res) {
     } else {
         renderArticles('min', function (error, text) {
             if (error) {
+                logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
@@ -173,6 +178,7 @@ app.get('/blick/:id?', function (req, res) {
     if (id) {
         renderArticle(id, 'blick', function (error, text) {
             if (error) {
+                logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.end(text);
@@ -181,6 +187,7 @@ app.get('/blick/:id?', function (req, res) {
     } else {
         renderArticles('blick', function (error, text) {
             if (error) {
+                logger.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
@@ -190,36 +197,51 @@ app.get('/blick/:id?', function (req, res) {
     }
 });
 
-//app.get('/admin/errors', function (req, res) {
-    //logger.getAll(function (error, errors) {
-        //var i,
-            //len,
-            //err;
-        //if (error) {
-            //res.send('An error occured while querying the log database:\n' + error);
-        //} else {
-            //res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
-            //res.write('<table border="1"><tr><th>Time</th><th>Importance</th><th>Message</th></tr>');
+app.get('/admin/errors', function (req, res) {
+    logger.getAll(function (error, errors) {
+        var i,
+            len,
+            err;
+        if (error) {
+            res.send('An error occured while querying the log database:\n' + error);
+        } else {
+            res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
+            res.write('<table border="1"><tr><th>Time</th><th>Importance</th><th>Message</th></tr>');
 
-            //for (i = 0, len = errors.length; i < len; i += 1) {
-                //err = errors[i];
+            for (i = 0, len = errors.length; i < len; i += 1) {
+                err = errors[i];
 
-                //res.write('<tr><td>' + err.date.toLocaleString() + '</td><td>' + err.importance + '</td><td>' + err.message + '</td></tr>');
-            //}
+                res.write('<tr><td>' + err.date.toLocaleString() + '</td><td>' + err.importance + '</td><td>' + err.message + '</td></tr>');
+            }
 
-            //res.end('</table>');
-        //}
-    //});
-//});
+            res.end('</table>');
+        }
+    });
+});
 
 app.post('/poll', function (req, res) {
     blick.poll(function (error) {
+        if (error) {
+            logger.error(error);
+        } else {
+            logger.info('successfully checked Blick rss feeds.');
+        }
     });
 
     minuten.poll(function (error) {
+        if (error) {
+            logger.error(error);
+        } else {
+            logger.info('successfully checked 20 Minuten rss feeds.');
+        }
     });
 
     tagi.poll(function (error) {
+        if (error) {
+            logger.error(error);
+        } else {
+            logger.info('successfully checked tagi rss feeds.');
+        }
     });
 
     res.writeHeader(200, {"Content-Type": "text/html"});
@@ -321,13 +343,29 @@ setInterval(function () {
 
     try {
         blick.poll(function (error) {
+            if (error) {
+                logger.error(error);
+            } else {
+                logger.info('successfully checked Blick rss feeds.');
+            }
         });
 
         minuten.poll(function (error) {
+            if (error) {
+                logger.error(error);
+            } else {
+                logger.info('successfully checked 20 Minuten rss feeds.');
+            }
         });
 
         tagi.poll(function (error) {
+            if (error) {
+                logger.error(error);
+            } else {
+                logger.info('successfully checked tagi rss feeds.');
+            }
         });
     } catch (error) {
+        logger.error(error);
     }
 }, 30 * 60 * 1000);
