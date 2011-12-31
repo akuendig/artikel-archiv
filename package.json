@@ -9,7 +9,7 @@
     "feedparser": ">= 0.4.3",
     "jquery": ">= 1.6.3",
     "jsdom": ">= 0.2.10",
-    "request": ">= 2.2.9",
+    "request": ">= 2.9.3",
     "async": ">= 0.1.15",
     "mongoose": ">=2.4.7"
   },

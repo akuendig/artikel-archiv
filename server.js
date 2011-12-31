@@ -2,10 +2,10 @@
 var express = require('express'),
     mongoose = require('mongoose'),
     async = require('async'),
-    archiver = require('.lib/archiver'),
+    archiver = require('./lib/archiver'),
     logger = require('./lib/logger').createLogger(),
     tagi,
-    minute,
+    minuten,
     blick,
     app = express.createServer();
 
