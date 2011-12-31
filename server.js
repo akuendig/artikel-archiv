@@ -113,7 +113,6 @@ app.get('/', function (req, res) {
     res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
     //res.write('<form action="poll" method="post"><input type="submit" value="Poll" /></form>');
-    res.write(process.env.ABC);
     res.write('<form action="tagi" method="get"><input type="submit" value="Tagi" /></form>');
     res.write('<form action="min" method="get"><input type="submit" value="20 Minuten" /></form>');
     res.write('<form action="blick" method="get"><input type="submit" value="Blick" /></form>');
