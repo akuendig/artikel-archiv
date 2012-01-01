@@ -333,10 +333,10 @@ function bootstrap() {
     }
 
     console.log('port: ' + process.env.PORT);
-    app.listen(process.env.PORT || 3000);
 }
 
 bootstrap();
+app.listen(process.env.PORT || 3000);
 
 // Intervall polling
 // *****************
