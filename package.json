@@ -1,7 +1,7 @@
 {
   "name": "artikel-archiv",
   "description": "Artikel archivierer",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Adrian Kuendig <adriankue@gmail.com>",
   "dependencies": {
     "contextify": ">= 0.0.6",
@@ -13,5 +13,16 @@
     "async": ">= 0.1.15",
     "mongoose": "= 2.4.4"
   },
-  "engines": { "node": "= 0.4.x" }
+  "engines": {
+    "node": "= 0.4.x"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Etenamo/artikel-archiv.git"
+  },
+  "main": "server.js"
 }

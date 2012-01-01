@@ -110,6 +110,7 @@ function renderArticle(id, paper, callback) {
 // *********
 
 app.get('/', function (req, res) {
+    console.log('connect');
     res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
     //res.write('<form action="poll" method="post"><input type="submit" value="Poll" /></form>');
