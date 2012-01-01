@@ -329,8 +329,10 @@ function bootstrap() {
         });
 
     } catch(exception) {
+        console.error(exception);
     }
-    console.log(JSON.stringify(process.env));
+
+    console.log('port: ' + process.env.PORT);
     app.listen(process.env.PORT || 3000);
 }
 
