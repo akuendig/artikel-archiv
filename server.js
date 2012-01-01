@@ -250,7 +250,7 @@ app.post('/poll', function (req, res) {
 function bootstrap() {
     try {
         tagi = archiver.create({
-            database: process.env.tagi,
+            database: 'mongodb://etenamo:3vXNSXYd@ds029267.mongolab.com:29267/tagi',
             feeds: [
                 'http://www.tagesanzeiger.ch/rss.html',
                 'http://www.tagesanzeiger.ch/rss_ticker.html',

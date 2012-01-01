@@ -11,7 +11,7 @@
     "jsdom": ">= 0.2.10",
     "request": ">= 2.2.x",
     "async": ">= 0.1.15",
-    "mongoose": ">=2.4.7"
+    "mongoose": "= 2.4.4"
   },
   "engines": { "node": "= 0.4.x" }
 }
