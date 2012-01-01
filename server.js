@@ -330,6 +330,7 @@ function bootstrap() {
 
     } catch(exception) {
     }
+    console.log(JSON.stringify(process.env));
     app.listen(process.env.PORT || 3000);
 }
 
