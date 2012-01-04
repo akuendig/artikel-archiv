@@ -106,11 +106,16 @@ function renderArticle(id, paper, callback) {
     }
 }
 
+function compress() {
+    tagi.compress(console.error);
+    minuten.compress(console.error);
+    blick.compress(console.error);
+}
+
 // Web server
 // *********
 
 app.get('/', function (req, res) {
-    console.log('connect');
     res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
 
     //res.write('<form action="poll" method="post"><input type="submit" value="Poll" /></form>');
@@ -118,8 +123,80 @@ app.get('/', function (req, res) {
     res.write('<form action="min" method="get"><input type="submit" value="20 Minuten" /></form>');
     res.write('<form action="blick" method="get"><input type="submit" value="Blick" /></form>');
     res.write('<form action="/admin/errors" method="get"><input type="submit" value="Errors" /></form>');
+    res.write('<form action="/admin/compression" method="get"><input type="submit" value="Compression" /></form>');
 
     res.end();
+});
+
+app.get('/admin/compression', function (req, res) {
+    res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
+
+    res.write('<h2>Stats:</h2>');
+    async.auto({
+        compressed_tagi: function (cb) {
+            tagi.
+                query().
+                where('site.compressed', true).
+                count().
+                run(cb);
+        },
+        uncompressed_tagi: function (cb) {
+            tagi.
+                query().
+                where('site.compressed', false).
+                count().
+                run(cb);
+        },
+        render_tagi: ['compressed_tagi', 'uncompressed_tagi', function (cb, results) {
+            res.write('tagi: ' + results.compressed_tagi + '/' + results.uncompressed_tagi + '<p>');
+            cb();
+        }],
+        compressed_blick: function (cb) {
+            blick.
+                query().
+                where('site.compressed', true).
+                count().
+                run(cb);
+        },
+        uncompressed_blick: function (cb) {
+            blick.
+                query().
+                where('site.compressed', false).
+                count().
+                run(cb);
+        },
+        render_blick: ['compressed_blick', 'uncompressed_blick', function (cb, results) {
+            res.write('blick: ' + results.compressed_blick + '/' + results.uncompressed_blick + '<p>');
+            cb();
+        }],
+        compressed_minuten: function (cb) {
+            minuten.
+                query().
+                where('site.compressed', true).
+                count().
+                run(cb);
+        },
+        uncompressed_minuten: function (cb) {
+            minuten.
+                query().
+                where('site.compressed', false).
+                count().
+                run(cb);
+        },
+        render_minuten: ['compressed_minuten', 'uncompressed_minuten', function (cb, results) {
+            res.write('minuten: ' + results.compressed_minuten + '/' + results.uncompressed_minuten + '<p>');
+            cb();
+        }],
+        finish: ['render_minuten', 'render_tagi', 'render_blick', function () {
+            res.write('<form action="/admin/compress" method="post"><input type="submit" value="Compress" /></form>');
+            res.end();
+        }]
+    });
+});
+
+app.post('/admin/compress', function (req, res) {
+    compress();
+    res.redirect('/admin/compression');
 });
 
 app.get('/tagi/:id?', function (req, res) {
@@ -202,6 +279,7 @@ app.get('/admin/errors', function (req, res) {
         var i,
             len,
             err;
+
         if (error) {
             res.send('An error occured while querying the log database:\n' + error);
         } else {
@@ -219,39 +297,10 @@ app.get('/admin/errors', function (req, res) {
     });
 });
 
-app.post('/poll', function (req, res) {
-    blick.poll(function (error) {
-        if (error) {
-            logger.error(error);
-        } else {
-            logger.info('successfully checked Blick rss feeds.');
-        }
-    });
-
-    minuten.poll(function (error) {
-        if (error) {
-            logger.error(error);
-        } else {
-            logger.info('successfully checked 20 Minuten rss feeds.');
-        }
-    });
-
-    tagi.poll(function (error) {
-        if (error) {
-            logger.error(error);
-        } else {
-            logger.info('successfully checked tagi rss feeds.');
-        }
-    });
-
-    res.writeHeader(200, {"Content-Type": "text/html"});
-    res.end();
-});
-
 function bootstrap() {
     try {
         tagi = archiver.create({
-            database: 'mongodb://etenamo:3vXNSXYd@ds029267.mongolab.com:29267/tagi',
+            database: process.env.tagi,
             feeds: [
                 'http://www.tagesanzeiger.ch/rss.html',
                 'http://www.tagesanzeiger.ch/rss_ticker.html',
@@ -333,11 +382,10 @@ function bootstrap() {
         console.error(exception);
     }
 
-    console.log('port: ' + process.env.PORT);
+    app.listen(process.env.PORT || 3000);
 }
 
 bootstrap();
-app.listen(process.env.PORT || 3000);
 
 // Intervall polling
 // *****************
