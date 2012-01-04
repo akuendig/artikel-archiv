@@ -205,7 +205,7 @@ app.get('/tagi/:id?', function (req, res) {
     if (id) {
         renderArticle(id, 'tagi', function (error, text) {
             if (error) {
-                logger.error(error);
+                console.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.end(text);
@@ -214,7 +214,7 @@ app.get('/tagi/:id?', function (req, res) {
     } else {
         renderArticles('tagi', function (error, text) {
             if (error) {
-                logger.error(error);
+                console.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
@@ -230,7 +230,7 @@ app.get('/min/:id?', function (req, res) {
     if (id) {
         renderArticle(id, 'min', function (error, text) {
             if (error) {
-                logger.error(error);
+                console.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.end(text);
@@ -239,7 +239,7 @@ app.get('/min/:id?', function (req, res) {
     } else {
         renderArticles('min', function (error, text) {
             if (error) {
-                logger.error(error);
+                console.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
@@ -255,7 +255,7 @@ app.get('/blick/:id?', function (req, res) {
     if (id) {
         renderArticle(id, 'blick', function (error, text) {
             if (error) {
-                logger.error(error);
+                console.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.end(text);
@@ -264,7 +264,7 @@ app.get('/blick/:id?', function (req, res) {
     } else {
         renderArticles('blick', function (error, text) {
             if (error) {
-                logger.error(error);
+                console.error(error);
                 res.end('An error occured while querying the articles database: ' +  error);
             } else {
                 res.writeHeader(200, {"Content-Type": "text/html; charset=utf-8"});
@@ -390,33 +390,32 @@ bootstrap();
 // Intervall polling
 // *****************
 
-//setInterval(function () {
+setInterval(function () {
+    try {
+        blick.poll(function (error) {
+            if (error) {
+                console.error(error);
+            } else {
+                logger.info('successfully checked Blick rss feeds.');
+            }
+        });
 
-    //try {
-        //blick.poll(function (error) {
-            //if (error) {
-                //logger.error(error);
-            //} else {
-                //logger.info('successfully checked Blick rss feeds.');
-            //}
-        //});
+        minuten.poll(function (error) {
+            if (error) {
+                console.error(error);
+            } else {
+                logger.info('successfully checked 20 Minuten rss feeds.');
+            }
+        });
 
-        //minuten.poll(function (error) {
-            //if (error) {
-                //logger.error(error);
-            //} else {
-                //logger.info('successfully checked 20 Minuten rss feeds.');
-            //}
-        //});
-
-        //tagi.poll(function (error) {
-            //if (error) {
-                //logger.error(error);
-            //} else {
-                //logger.info('successfully checked tagi rss feeds.');
-            //}
-        //});
-    //} catch (error) {
-        //logger.error(error);
-    //}
-//}, 30 * 60 * 1000);
+        tagi.poll(function (error) {
+            if (error) {
+                console.error(error);
+            } else {
+                logger.info('successfully checked tagi rss feeds.');
+            }
+        });
+    } catch (error) {
+        console.error(error);
+    }
+}, 30 * 60 * 1000);
