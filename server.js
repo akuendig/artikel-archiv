@@ -342,33 +342,33 @@ app.listen(process.env.PORT || 3000);
 // Intervall polling
 // *****************
 
-setInterval(function () {
+//setInterval(function () {
 
-    try {
-        blick.poll(function (error) {
-            if (error) {
-                logger.error(error);
-            } else {
-                logger.info('successfully checked Blick rss feeds.');
-            }
-        });
+    //try {
+        //blick.poll(function (error) {
+            //if (error) {
+                //logger.error(error);
+            //} else {
+                //logger.info('successfully checked Blick rss feeds.');
+            //}
+        //});
 
-        minuten.poll(function (error) {
-            if (error) {
-                logger.error(error);
-            } else {
-                logger.info('successfully checked 20 Minuten rss feeds.');
-            }
-        });
+        //minuten.poll(function (error) {
+            //if (error) {
+                //logger.error(error);
+            //} else {
+                //logger.info('successfully checked 20 Minuten rss feeds.');
+            //}
+        //});
 
-        tagi.poll(function (error) {
-            if (error) {
-                logger.error(error);
-            } else {
-                logger.info('successfully checked tagi rss feeds.');
-            }
-        });
-    } catch (error) {
-        logger.error(error);
-    }
-}, 30 * 60 * 1000);
+        //tagi.poll(function (error) {
+            //if (error) {
+                //logger.error(error);
+            //} else {
+                //logger.info('successfully checked tagi rss feeds.');
+            //}
+        //});
+    //} catch (error) {
+        //logger.error(error);
+    //}
+//}, 30 * 60 * 1000);
