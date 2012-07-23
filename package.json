@@ -4,17 +4,14 @@
   "version": "0.0.3",
   "author": "Adrian Kuendig <adriankue@gmail.com>",
   "dependencies": {
-    "contextify": ">= 0.0.6",
-    "express": "= 2.4.6",
-    "feedparser": ">= 0.4.3",
-    "jquery": ">= 1.6.3",
-    "jsdom": ">= 0.2.10",
-    "request": ">= 2.2.x",
-    "async": ">= 0.1.15",
-    "mongoose": "= 2.4.4"
+    "express": "2.x.x",
+    "feedparser": "0.9.x",
+    "request": "2.x.x",
+    "fibrous": "0.2.x",
+    "mongoose": "2.x.x"
   },
   "engines": {
-    "node": "= 0.4.x"
+    "node": "= 0.8.x"
   },
   "scripts": {
     "start": "node server.js"
